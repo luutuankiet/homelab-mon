@@ -65,6 +65,13 @@ sequenceDiagram
     end
 ```
 
+Demo how this would look like from the clients (ntfy):
+
+| Demo |
+| :--- |
+| <img src="https://github.com/user-attachments/assets/bf54272b-1748-4e9a-8710-99feafea0c1f" width="300"> |
+
+
 ---
 
 ## Architecture
