@@ -1,0 +1,41 @@
+groups:
+  - name: resource_alerts
+    rules:
+      - alert: HighMemoryUsage
+        # (1 - (Available / Total)) > 0.85 means >85% used
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host High Memory: {{ $value | humanizePercentage }}"
+          description: "Host memory usage is above 85% for more than 2 minutes. Risk of OOM."
+
+      - alert: HighCPUUsage
+        # Calculate non-idle CPU percentage
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host High CPU: {{ $value | humanizePercentage }}"
+          description: "CPU usage is above 90% for more than 5 minutes."
+
+      - alert: ContainerHighMemory
+        # Usage > 80% of limit, ignoring containers with no limit (0)
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) > 0.8 and container_spec_memory_limit_bytes{name!=""} > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container High Memory: {{ $labels.name }}"
+          description: "{{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit."
+
+      - alert: ContainerOOMKilled
+        # Any increase in OOM kill counter
+        expr: increase(container_oom_events_total{name!=""}[1m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container OOM Killed: {{ $labels.name }}"
+          description: "{{ $labels.name }} was killed by OOM killer."

@@ -1,0 +1,21 @@
+http:
+  addr: :8080
+ntfy:
+  baseurl: https://ntfy.sh
+  notification:
+    topic: ken_hetzner
+    priority: |
+      status == "firing" ? "high" : "default"
+    tags:
+      - tag: "+1"
+        condition: status == "resolved"
+      - tag: rotating_light
+        condition: status == "firing"
+      - tag: warning
+        condition: status == "firing"
+    templates:
+      title: |
+        {{ if eq .Status "resolved" }}✅ RESOLVED{{ else }}🚨 FIRING{{ end }}: {{ index .Labels "alertname" }}
+      description: |
+        {{ index .Annotations "summary" }}
+        {{ index .Annotations "description" }}

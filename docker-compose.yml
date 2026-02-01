@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'  # Keep 15 days of data (saves disk/RAM)
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    # ports:
+    #   - "9090:9090"
+    networks:
+      - monitoring
+      - frontend
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    # ports:
+    #   - "8080:8080"
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+    volumes:
+      - ./alertmanager/config.yml:/etc/alertmanager/config.yml:ro
+    # ports:
+    #   - "9093:9093"
+    networks:
+      - monitoring
+      - frontend
+
+  alertmanager-ntfy:
+    image: ghcr.io/alexbakker/alertmanager-ntfy:1.1.0
+    container_name: alertmanager-ntfy
+    restart: unless-stopped
+    command:
+      - --configs=/etc/alertmanager-ntfy/config.yml
+    volumes:
+      - ./alertmanager-ntfy/config.yml:/etc/alertmanager-ntfy/config.yml:ro
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+    # ports:
+    #   - "9100:9100"
+    networks:
+      - monitoring
+networks:
+  monitoring:
+    driver: bridge
+  frontend:
+    external: true
+
+volumes:
+  prometheus_data:
